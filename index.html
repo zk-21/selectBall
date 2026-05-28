@@ -30,15 +30,21 @@
 
     <main id="appRoot" class="app" hidden>
       <section id="agentHomePanel" class="agent-shell" data-agent-section aria-label="手机 Agent 工作台">
-        <div class="agent-copy">
-          <span class="agent-badge">Mobile Agent</span>
-          <h2>选号 Agent</h2>
-          <p>为手机单手操作重新包装，支持桌面安装、离线打开和快速跳转到核心工作区。</p>
-        </div>
-        <div class="agent-status">
-          <span id="displayModeBadge" class="agent-pill">浏览器模式</span>
-          <span id="networkStatusBadge" class="agent-pill">在线</span>
-          <span class="agent-pill">草稿自动保存在本机</span>
+        <div class="agent-shell-top">
+          <div class="agent-copy">
+            <span class="agent-badge">Mobile Agent</span>
+            <h2>选号 Agent</h2>
+            <p>为手机单手操作重新包装，支持桌面安装、离线打开和快速跳转到核心工作区。</p>
+          </div>
+          <div class="agent-sidecard">
+            <span class="agent-sidecard-title">Runtime Status</span>
+            <div class="agent-status">
+              <span id="displayModeBadge" class="agent-pill">浏览器模式</span>
+              <span id="networkStatusBadge" class="agent-pill">在线</span>
+              <span class="agent-pill">草稿自动保存在本机</span>
+            </div>
+            <p id="installHint" class="agent-hint">在浏览器菜单里也可以选择“添加到主屏幕”。</p>
+          </div>
         </div>
         <div class="agent-actions">
           <button id="installAppButton" class="agent-primary-action" type="button" hidden>安装到手机</button>
@@ -46,15 +52,21 @@
           <button class="agent-jump" type="button" data-target="#agentVersionPanel">查看版本库</button>
           <button class="agent-jump" type="button" data-target="#agentImportPanel">导入开奖号</button>
         </div>
-        <p id="installHint" class="agent-hint">在浏览器菜单里也可以选择“添加到主屏幕”。</p>
       </section>
 
       <section id="agentControlPanel" class="toolbar" data-agent-section aria-label="操作栏">
-        <div class="brand">
-          <span class="brand-mark"></span>
-          <div>
-            <h1>选号模拟</h1>
-            <p>点击格子添加球，颜色和编号都可以自定义。</p>
+        <div class="toolbar-top">
+          <div class="brand">
+            <span class="brand-mark"></span>
+            <div>
+              <h1>选号模拟</h1>
+              <p>点击格子添加球，颜色和编号都可以自定义。</p>
+            </div>
+          </div>
+          <div class="toolbar-note">
+            <span class="toolbar-kicker">Quick Control</span>
+            <strong>顶部控制台</strong>
+            <p>行、区、号码、颜色、缩放都集中在这里，单手切换更快。</p>
           </div>
         </div>
 
@@ -216,22 +228,27 @@
 
       <nav id="mobileDock" class="mobile-dock" aria-label="手机快捷导航">
         <button class="dock-item" type="button" data-target="#agentHomePanel">
+          <span class="dock-item-icon" aria-hidden="true">⌂</span>
           <span class="dock-item-kicker">首页</span>
           <strong>Agent</strong>
         </button>
         <button class="dock-item" type="button" data-target="#agentControlPanel">
+          <span class="dock-item-icon" aria-hidden="true">◎</span>
           <span class="dock-item-kicker">控制</span>
           <strong>工作台</strong>
         </button>
         <button class="dock-item active" type="button" data-target="#agentBoardPanel">
+          <span class="dock-item-icon" aria-hidden="true">●</span>
           <span class="dock-item-kicker">核心</span>
           <strong>选号盘</strong>
         </button>
         <button class="dock-item" type="button" data-target="#agentVersionPanel">
+          <span class="dock-item-icon" aria-hidden="true">▣</span>
           <span class="dock-item-kicker">记录</span>
           <strong>版本库</strong>
         </button>
         <button class="dock-item" type="button" data-target="#agentImportPanel">
+          <span class="dock-item-icon" aria-hidden="true">↥</span>
           <span class="dock-item-kicker">数据</span>
           <strong>开奖号</strong>
         </button>
