@@ -1,9 +1,9 @@
-const CACHE_NAME = "mobile-agent-cache-v1";
+const CACHE_NAME = "mobile-agent-cache-v7";
 const OFFLINE_ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=20260528-mobile-agent",
-  "./script.js?v=20260528-mobile-agent",
+  "./styles.css?v=20260529-mobile-agent-7",
+  "./script.js?v=20260529-mobile-agent-7",
   "./manifest.webmanifest",
   "./vendor/xlsx.full.min.js",
   "./vendor/html2canvas.min.js",

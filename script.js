@@ -621,12 +621,30 @@ function getVersionById(id) {
   return versions.find((version) => version.id === id) || null;
 }
 
+const compareRuleHint =
+  "选 2 个版本时取各版本第 11-30 行映射到主选号区 1-20、21-40；选 3 个版本时取各版本第 16-30 行映射到主选号区 1-15、16-30、31-45，号码仍按原号码落位。";
+
 function buildCompareBalls(selectedVersions) {
-  const segments = [
-    { start: 1, end: 15 },
-    { start: 16, end: 30 },
-    { start: 31, end: 45 },
-  ];
+  const compareMode = selectedVersions.length === 2
+    ? {
+        sourceStart: 11,
+        sourceEnd: 30,
+        segments: [
+          { start: 1, end: 20 },
+          { start: 21, end: 40 },
+        ],
+      }
+    : {
+        sourceStart: 16,
+        sourceEnd: 30,
+        segments: [
+          { start: 1, end: 15 },
+          { start: 16, end: 30 },
+          { start: 31, end: 45 },
+        ],
+      };
+  const { sourceStart, sourceEnd, segments } = compareMode;
+  const sourceRowCount = sourceEnd - sourceStart + 1;
   const compareBalls = [];
   const compareRows = {};
   const compareSplitRows = [];
@@ -634,15 +652,15 @@ function buildCompareBalls(selectedVersions) {
   selectedVersions.forEach((version, versionIndex) => {
     const segment = segments[versionIndex];
     if (!version || !segment) return;
-    if (segment.end < rows) compareSplitRows.push(segment.end);
-    const sourceBalls = cloneBalls(version.balls).filter((ball) => ball.row >= 16 && ball.row <= 30);
-    for (let offset = 0; offset < 15; offset += 1) {
-      const sourceRow = 16 + offset;
+    if (versionIndex < selectedVersions.length - 1 && segment.end < rows) compareSplitRows.push(segment.end);
+    const sourceBalls = cloneBalls(version.balls).filter((ball) => ball.row >= sourceStart && ball.row <= sourceEnd);
+    for (let offset = 0; offset < sourceRowCount; offset += 1) {
+      const sourceRow = sourceStart + offset;
       const mappedRow = segment.start + offset;
       compareRows[mappedRow] = version.rowIssues?.[sourceRow] || `${version.title || "历史版本"}-${sourceRow}`;
     }
     sourceBalls.forEach((ball) => {
-      const mappedRow = segment.start + (ball.row - 16);
+      const mappedRow = segment.start + (ball.row - sourceStart);
       const mappedNumber = Number(ball.number);
       if (mappedNumber < 1 || mappedNumber > zones[ball.zone]?.max) return;
       compareBalls.push({
@@ -703,7 +721,7 @@ function openCompareModal() {
     return;
   }
   populateCompareSelects();
-  compareHint.textContent = "可选择 2 个或 3 个版本：各版本第 16-30 行会映射到主选号区行分段，选中的号码仍按原号码落位。";
+  compareHint.textContent = compareRuleHint;
   compareModal.hidden = false;
 }
 
@@ -954,10 +972,10 @@ async function captureBoard() {
     return;
   }
 
-  const target = document.querySelector(".board");
-  const boardShell = document.querySelector(".board-shell");
-  const boardActions = boardShell?.querySelector(".board-actions");
-  if (!target) return;
+  const target = document.querySelector("#board");
+  const frontSource = document.querySelector("#frontBoard");
+  const backSource = document.querySelector("#backBoard");
+  if (!target || !frontSource || !backSource) return;
 
   const filenameBase = currentBaseTitle
     ? currentBaseTitle.replace(/[\\/:*?\"<>|]/g, "-")
@@ -971,26 +989,47 @@ async function captureBoard() {
   }
 
   try {
-    const previousActionsDisplay = boardActions?.style.display || "";
-    const previousZoom = document.documentElement.style.getPropertyValue("--board-zoom");
-    if (boardActions) boardActions.style.display = "none";
-    document.documentElement.style.setProperty("--board-zoom", "1");
+    const boardStyle = getComputedStyle(target);
+    const zoneGap = parseFloat(boardStyle.columnGap || boardStyle.gap) || 0;
 
     captureHost = document.createElement("div");
     captureHost.style.position = "fixed";
-    captureHost.style.left = "-100000px";
-    captureHost.style.top = "0";
+    captureHost.style.left = "0";
+    captureHost.style.top = "-100000px";
     captureHost.style.padding = "0";
     captureHost.style.margin = "0";
     captureHost.style.background = "#ffffff";
     captureHost.style.zIndex = "-1";
+    captureHost.style.overflow = "visible";
+    captureHost.style.width = "max-content";
 
-    const clone = target.cloneNode(true);
+    const clone = document.createElement("div");
+    clone.style.display = "inline-flex";
+    clone.style.alignItems = "flex-start";
+    clone.style.gap = `${zoneGap}px`;
+    clone.style.padding = "0";
+    clone.style.margin = "0";
+    clone.style.background = "#ffffff";
     clone.style.zoom = "1";
     clone.style.transform = "none";
     clone.style.width = "max-content";
     clone.style.minWidth = "0";
+    clone.style.maxWidth = "none";
     clone.style.overflow = "visible";
+
+    const frontClone = frontSource.cloneNode(true);
+    const backClone = backSource.cloneNode(true);
+    [frontClone, backClone].forEach((zoneClone) => {
+      zoneClone.style.flex = "0 0 auto";
+      zoneClone.style.width = "max-content";
+      zoneClone.style.minWidth = "0";
+      zoneClone.style.maxWidth = "none";
+      zoneClone.style.overflow = "visible";
+      zoneClone.style.zoom = "1";
+      zoneClone.style.transform = "none";
+    });
+
+    clone.append(frontClone, backClone);
 
     clone.querySelectorAll('.cell[data-zone="front"]:not([data-pick="true"])').forEach((cell) => {
       cell.style.background = "#ffe9e7";
@@ -1013,7 +1052,7 @@ async function captureBoard() {
       label.style.background = "#f1f4f9";
     });
 
-    const sourceBalls = [...target.querySelectorAll(".ball")];
+    const sourceBalls = [...frontSource.querySelectorAll(".ball"), ...backSource.querySelectorAll(".ball")];
     const clonedBalls = [...clone.querySelectorAll(".ball")];
     sourceBalls.forEach((ball, index) => {
       const cloneBall = clonedBalls[index];
@@ -1031,29 +1070,44 @@ async function captureBoard() {
     captureHost.append(clone);
     document.body.append(captureHost);
 
+    await new Promise((resolve) => globalThis.requestAnimationFrame(() => resolve()));
+
+    const captureWidth = Math.ceil(
+      Math.max(
+        clone.scrollWidth,
+        clone.offsetWidth,
+        clone.getBoundingClientRect().width,
+      ),
+    );
+    const captureHeight = Math.ceil(
+      Math.max(
+        clone.scrollHeight,
+        clone.offsetHeight,
+        clone.getBoundingClientRect().height,
+      ),
+    );
+
     const canvas = await globalThis.html2canvas(clone, {
       backgroundColor: "#ffffff",
       scale: Math.max(2, globalThis.devicePixelRatio || 1),
       useCORS: true,
-      width: clone.scrollWidth,
-      height: clone.scrollHeight,
-      windowWidth: clone.scrollWidth,
-      windowHeight: clone.scrollHeight,
+      width: captureWidth,
+      height: captureHeight,
+      windowWidth: captureWidth,
+      windowHeight: captureHeight,
+      scrollX: 0,
+      scrollY: 0,
     });
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
     link.download = `${filenameBase}.png`;
     link.click();
     captureHost.remove();
-    if (boardActions) boardActions.style.display = previousActionsDisplay;
-    document.documentElement.style.setProperty("--board-zoom", previousZoom || `${zoomInput.value / 100}`);
   } catch (error) {
     console.error(error);
     alert("截图失败，请稍后重试。");
   } finally {
     captureHost?.remove();
-    document.documentElement.style.setProperty("--board-zoom", `${zoomInput.value / 100}`);
-    if (boardActions) boardActions.style.display = "";
     if (captureBoardButton) {
       captureBoardButton.disabled = false;
       captureBoardButton.textContent = previousText || "截图";
@@ -1893,7 +1947,7 @@ openCompareModal = function openCompareModalOverride(sourceVersionId = "") {
   compareSourceVersionId = sourceVersionId;
   activeCompareSelection = [];
   populateCompareSelects();
-  compareHint.textContent = "默认已选当前版本及前后版本；会取各版本第 16-30 行，并保留原号码位置。";
+  compareHint.textContent = `默认已选当前版本及前后版本；${compareRuleHint}`;
   compareModal.hidden = false;
 };
 
@@ -1906,12 +1960,13 @@ function saveCompareAsVersion() {
     return;
   }
 
-  const { compareBalls, compareRows } = buildCompareBalls(selectedVersions);
+  const { compareBalls, compareRows, compareSplitRows } = buildCompareBalls(selectedVersions);
   const compareTitle = `对比图：${selectedVersions.map((version) => version.title || "历史版本").join(" / ")}`;
   applyBalls(compareBalls, {
     baseTitle: compareTitle,
     rowIssues: compareRows,
     protectBalls: true,
+    compareSplitRows,
   });
   const version = saveCurrentBoardAsVersion(compareTitle);
   compareHint.textContent = `对比图已保存为版本：${version.title}`;
